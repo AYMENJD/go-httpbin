@@ -40,6 +40,7 @@ type noBodyResponse struct {
 
 	Deflated bool `json:"deflated,omitempty"`
 	Gzipped  bool `json:"gzipped,omitempty"`
+	Brotli   bool `json:"brotli,omitempty"`
 }
 
 // A generic response for any incoming request that might contain a body (POST,

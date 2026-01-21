@@ -26,6 +26,8 @@ import (
 	"testing"
 	"time"
 
+	"github.com/andybalholm/brotli"
+
 	"github.com/mccutchen/go-httpbin/v2/internal/testing/assert"
 	"github.com/mccutchen/go-httpbin/v2/internal/testing/must"
 )
@@ -1890,6 +1892,38 @@ func TestDeflate(t *testing.T) {
 
 	result := must.Unmarshal[noBodyResponse](t, bytes.NewBuffer(body))
 	assert.Equal(t, result.Deflated, true, "expected result.Deflated == true")
+
+	if len(body) <= compressedContentLength {
+		t.Fatalf("expected compressed body")
+	}
+}
+
+func TestBrotli(t *testing.T) {
+	t.Parallel()
+
+	req := newTestRequest(t, "GET", "/brotli")
+	resp := must.DoReq(t, client, req)
+
+	assert.ContentType(t, resp, jsonContentType)
+	assert.Header(t, resp, "Content-Encoding", "br")
+	assert.StatusCode(t, resp, http.StatusOK)
+
+	contentLengthHeader := resp.Header.Get("Content-Length")
+	if contentLengthHeader == "" {
+		t.Fatalf("missing Content-Length header in response")
+	}
+
+	compressedContentLength, err := strconv.Atoi(contentLengthHeader)
+	assert.NilError(t, err)
+
+	reader, err := brotli.NewReader(resp.Body)
+	assert.NilError(t, err)
+
+	body, err := io.ReadAll(reader)
+	assert.NilError(t, err)
+
+	result := must.Unmarshal[noBodyResponse](t, bytes.NewBuffer(body))
+	assert.Equal(t, result.Brotli, true, "expected result.Brotli == true")
 
 	if len(body) <= compressedContentLength {
 		t.Fatalf("expected compressed body")
