@@ -9,6 +9,7 @@ import (
 	"fmt"
 	"io"
 	"log/slog"
+	"math"
 	"net"
 	"net/http"
 	"os"
@@ -25,6 +26,7 @@ const (
 	defaultListenHost = "0.0.0.0"
 	defaultListenPort = 8080
 	defaultLogFormat  = "text"
+	defaultLogLevel   = "INFO"
 	defaultEnvPrefix  = "HTTPBIN_ENV_"
 
 	// Reasonable defaults for the underlying http.Server
@@ -67,7 +69,10 @@ func mainImpl(args []string, getEnvVal func(string) string, getEnviron func() []
 		return 1
 	}
 
-	logger := slog.New(slog.NewTextHandler(out, nil))
+	logLevelVar := new(slog.LevelVar)
+	logLevelVar.Set(parseLogLevel(cfg.LogLevel))
+
+	logger := slog.New(slog.NewTextHandler(out, &slog.HandlerOptions{Level: logLevelVar}))
 
 	if cfg.LogFormat == "json" {
 		// use structured logging if requested
@@ -127,6 +132,7 @@ type config struct {
 	TLSCertFile            string
 	TLSKeyFile             string
 	LogFormat              string
+	LogLevel               string
 	SrvMaxHeaderBytes      int
 	SrvReadHeaderTimeout   time.Duration
 	SrvReadTimeout         time.Duration
@@ -176,6 +182,7 @@ func loadConfig(args []string, getEnvVal func(string) string, getEnviron func() 
 	fs.StringVar(&cfg.TLSKeyFile, "https-key-file", "", "HTTPS Server private key file")
 	fs.StringVar(&cfg.ExcludeHeaders, "exclude-headers", "", "Drop platform-specific headers. Comma-separated list of headers key to drop, supporting wildcard matching.")
 	fs.StringVar(&cfg.LogFormat, "log-format", defaultLogFormat, "Log format (text or json)")
+	fs.StringVar(&cfg.LogLevel, "log-level", defaultLogLevel, "Logging level (DEBUG, INFO, WARN, ERROR, OFF)")
 	fs.IntVar(&cfg.SrvMaxHeaderBytes, "srv-max-header-bytes", defaultSrvMaxHeaderBytes, "Value to use for the http.Server's MaxHeaderBytes option")
 	fs.DurationVar(&cfg.SrvReadHeaderTimeout, "srv-read-header-timeout", defaultSrvReadHeaderTimeout, "Value to use for the http.Server's ReadHeaderTimeout option")
 	fs.DurationVar(&cfg.SrvReadTimeout, "srv-read-timeout", defaultSrvReadTimeout, "Value to use for the http.Server's ReadTimeout option")
@@ -272,6 +279,12 @@ func loadConfig(args []string, getEnvVal func(string) string, getEnviron func() 
 	if cfg.LogFormat != "text" && cfg.LogFormat != "json" {
 		return nil, configErr(`invalid log format %q, must be "text" or "json"`, cfg.LogFormat)
 	}
+	if cfg.LogLevel == defaultLogLevel && getEnvVal("LOG_LEVEL") != "" {
+		cfg.LogLevel = getEnvVal("LOG_LEVEL")
+	}
+	if !isValidLogLevel(cfg.LogLevel) {
+		return nil, configErr(`invalid log level %q, must be one of "DEBUG", "INFO", "WARN", "ERROR", "OFF"`, cfg.LogLevel)
+	}
 
 	if getEnvBool(getEnvVal("USE_REAL_HOSTNAME")) {
 		cfg.rawUseRealHostname = true
@@ -337,6 +350,31 @@ func loadConfig(args []string, getEnvVal func(string) string, getEnviron func() 
 
 func getEnvBool(val string) bool {
 	return val == "1" || val == "true"
+}
+
+func isValidLogLevel(s string) bool {
+	switch strings.ToUpper(strings.TrimSpace(s)) {
+	case "DEBUG", "INFO", "WARN", "ERROR", "OFF":
+		return true
+	default:
+		return false
+	}
+}
+
+func parseLogLevel(s string) slog.Level {
+	switch strings.ToUpper(strings.TrimSpace(s)) {
+	case "DEBUG":
+		return slog.LevelDebug
+	case "WARN":
+		return slog.LevelWarn
+	case "ERROR":
+		return slog.LevelError
+	case "OFF":
+		// Disable all logging by setting the level above any possible value
+		return slog.Level(math.MaxInt)
+	default:
+		return slog.LevelInfo
+	}
 }
 
 func listenAndServeGracefully(srv *http.Server, cfg *config, logger *slog.Logger) error {

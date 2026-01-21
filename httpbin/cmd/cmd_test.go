@@ -32,6 +32,8 @@ const usage = `Usage of go-httpbin:
     	HTTPS Server private key file
   -log-format string
     	Log format (text or json) (default "text")
+  -log-level string
+    	Logging level (DEBUG, INFO, WARN, ERROR, OFF) (default "INFO")
   -max-body-size int
     	Maximum size of request or response, in bytes (default 1048576)
   -max-duration duration
@@ -78,6 +80,7 @@ func TestLoadConfig(t *testing.T) {
 				MaxBodySize:          httpbin.DefaultMaxBodySize,
 				MaxDuration:          httpbin.DefaultMaxDuration,
 				LogFormat:            defaultLogFormat,
+				LogLevel:             defaultLogLevel,
 				SrvMaxHeaderBytes:    defaultSrvMaxHeaderBytes,
 				SrvReadHeaderTimeout: defaultSrvReadHeaderTimeout,
 				SrvReadTimeout:       defaultSrvReadTimeout,
@@ -391,6 +394,27 @@ func TestLoadConfig(t *testing.T) {
 			}),
 		},
 
+		// log-level
+		"ok log level OFF": {
+			args: []string{"-log-level", "OFF"},
+			wantCfg: mergedConfig(defaultCfg, &config{
+				LogLevel: "OFF",
+			}),
+		},
+		"ok log level from env": {
+			env: map[string]string{"LOG_LEVEL": "DEBUG"},
+			wantCfg: mergedConfig(defaultCfg, &config{
+				LogLevel: "DEBUG",
+			}),
+		},
+		"ok log level CLI takes precedence over env": {
+			args: []string{"-log-level", "ERROR"},
+			env:  map[string]string{"LOG_LEVEL": "DEBUG"},
+			wantCfg: mergedConfig(defaultCfg, &config{
+				LogLevel: "ERROR",
+			}),
+		},
+
 		// srv-max-header-bytes
 		"invalid -srv-max-header-bytes": {
 			args:    []string{"-srv-max-header-bytes", "foo"},
@@ -612,6 +636,11 @@ func TestMainImpl(t *testing.T) {
 			args:     []string{"-log-format", "invalid"},
 			wantCode: 2,
 			wantOut:  "error: invalid log format \"invalid\", must be \"text\" or \"json\"\n\n" + usage,
+		},
+		"log level error": {
+			args:     []string{"-log-level", "NOPE"},
+			wantCode: 2,
+			wantOut:  "error: invalid log level \"NOPE\", must be one of \"DEBUG\", \"INFO\", \"WARN\", \"ERROR\", \"OFF\"\n\n" + usage,
 		},
 	}
 
