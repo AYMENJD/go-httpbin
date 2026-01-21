@@ -72,13 +72,17 @@ func mainImpl(args []string, getEnvVal func(string) string, getEnviron func() []
 	logLevelVar := new(slog.LevelVar)
 	logLevelVar.Set(parseLogLevel(cfg.LogLevel))
 
-	logger := slog.New(slog.NewTextHandler(out, &slog.HandlerOptions{Level: logLevelVar}))
+	logOpts := &slog.HandlerOptions{Level: logLevelVar}
 
+	var logHandler slog.Handler
 	if cfg.LogFormat == "json" {
 		// use structured logging if requested
-		handler := slog.NewJSONHandler(out, nil)
-		logger = slog.New(handler)
+		logHandler = slog.NewJSONHandler(out, logOpts)
+	} else {
+		logHandler = slog.NewTextHandler(out, logOpts)
 	}
+
+	logger := slog.New(logHandler)
 
 	opts := []httpbin.OptionFunc{
 		httpbin.WithEnv(cfg.Env),
