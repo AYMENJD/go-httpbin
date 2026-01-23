@@ -29,6 +29,9 @@ const (
 	defaultLogLevel   = "INFO"
 	defaultEnvPrefix  = "HTTPBIN_ENV_"
 
+	// Disable all logging by setting the level above any possible value
+	logLevelOff = slog.Level(math.MaxInt)
+
 	// Reasonable defaults for the underlying http.Server
 	defaultSrvReadTimeout       = 5 * time.Second
 	defaultSrvReadHeaderTimeout = 1 * time.Second
@@ -69,20 +72,7 @@ func mainImpl(args []string, getEnvVal func(string) string, getEnviron func() []
 		return 1
 	}
 
-	logLevelVar := new(slog.LevelVar)
-	logLevelVar.Set(parseLogLevel(cfg.LogLevel))
-
-	logOpts := &slog.HandlerOptions{Level: logLevelVar}
-
-	var logHandler slog.Handler
-	if cfg.LogFormat == "json" {
-		// use structured logging if requested
-		logHandler = slog.NewJSONHandler(out, logOpts)
-	} else {
-		logHandler = slog.NewTextHandler(out, logOpts)
-	}
-
-	logger := slog.New(logHandler)
+	logger := setupLogger(out, cfg.LogFormat, cfg.LogLevel)
 
 	opts := []httpbin.OptionFunc{
 		httpbin.WithEnv(cfg.Env),
@@ -374,11 +364,34 @@ func parseLogLevel(s string) slog.Level {
 	case "ERROR":
 		return slog.LevelError
 	case "OFF":
-		// Disable all logging by setting the level above any possible value
-		return slog.Level(math.MaxInt)
+		return logLevelOff
 	default:
 		return slog.LevelInfo
 	}
+}
+
+func setupLogger(out io.Writer, logFormat string, levelStr string) *slog.Logger {
+	level := parseLogLevel(levelStr)
+
+	if level == logLevelOff {
+		out = io.Discard
+	}
+
+	levelVar := new(slog.LevelVar)
+	levelVar.Set(level)
+
+	opts := &slog.HandlerOptions{
+		Level: levelVar,
+	}
+
+	var handler slog.Handler
+	if logFormat == "json" {
+		handler = slog.NewJSONHandler(out, opts)
+	} else {
+		handler = slog.NewTextHandler(out, opts)
+	}
+
+	return slog.New(handler)
 }
 
 func listenAndServeGracefully(srv *http.Server, cfg *config, logger *slog.Logger) error {
