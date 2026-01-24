@@ -1,7 +1,6 @@
 package httpbin
 
 import (
-	"net/http"
 	"net/url"
 )
 
@@ -13,12 +12,14 @@ const (
 	textContentType   = "text/plain; charset=utf-8"
 )
 
+type FlatHeaders map[string]string
+
 type envResponse struct {
 	Env map[string]string `json:"env"`
 }
 
 type headersResponse struct {
-	Headers http.Header `json:"headers"`
+	Headers FlatHeaders `json:"headers"`
 }
 
 type ipResponse struct {
@@ -33,7 +34,7 @@ type userAgentResponse struct {
 // (GET, HEAD, OPTIONS, etc).
 type noBodyResponse struct {
 	Args    url.Values  `json:"args"`
-	Headers http.Header `json:"headers"`
+	Headers FlatHeaders `json:"headers"`
 	Method  string      `json:"method"`
 	Origin  string      `json:"origin"`
 	URL     string      `json:"url"`
@@ -46,7 +47,7 @@ type noBodyResponse struct {
 // PUT, PATCH, etc).
 type bodyResponse struct {
 	Args    url.Values  `json:"args"`
-	Headers http.Header `json:"headers"`
+	Headers FlatHeaders `json:"headers"`
 	Method  string      `json:"method"`
 	Origin  string      `json:"origin"`
 	URL     string      `json:"url"`
@@ -74,7 +75,7 @@ type authResponse struct {
 type streamResponse struct {
 	ID      int         `json:"id"`
 	Args    url.Values  `json:"args"`
-	Headers http.Header `json:"headers"`
+	Headers FlatHeaders `json:"headers"`
 	Origin  string      `json:"origin"`
 	URL     string      `json:"url"`
 }

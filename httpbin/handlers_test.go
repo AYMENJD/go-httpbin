@@ -185,7 +185,7 @@ func TestGet(t *testing.T) {
 			"User-Agent":   "test",
 		}
 		for key, val := range wantHeaders {
-			assert.Equal(t, result.Headers.Get(key), val, "header mismatch for key %q", key)
+			assert.Equal(t, result.Headers[key], val, "header mismatch for key %q", key)
 		}
 	})
 
@@ -219,9 +219,9 @@ func TestGet(t *testing.T) {
 		result := doGetRequest(t, "/get", params, header)
 		assert.Equal(t, result.Args.Encode(), params.Encode(), "args mismatch")
 		assert.Equal(t, result.Method, "GET", "method mismatch")
-		assertHeaderEqual(t, &result.Headers, "X-Ignore-Foo", "")
-		assertHeaderEqual(t, &result.Headers, "x-info-this-key", "")
-		assertHeaderEqual(t, &result.Headers, "X-Info-Foo", "bar")
+		assertHeaderEqual(t, result.Headers, "X-Ignore-Foo", "")
+		assertHeaderEqual(t, result.Headers, "x-info-this-key", "")
+		assertHeaderEqual(t, result.Headers, "X-Info-Foo", "bar")
 	})
 
 	t.Run("only_allows_gets", func(t *testing.T) {
@@ -446,13 +446,17 @@ func TestHeaders(t *testing.T) {
 
 	// Host header requires special treatment, because it's a field on the
 	// http.Request struct itself, not part of its headers map
-	host := result.Headers.Get("Host")
+	host := result.Headers["Host"]
 	assert.Equal(t, req.Host, host, "missing or incorrect Host header")
 
-	for k, expectedValues := range req.Header {
-		values := result.Headers.Values(k)
-		assert.DeepEqual(t, expectedValues, values, "missing or incorrect header for key %q", k)
+	for k, headerValues := range req.Header {
+		expectedValues := strings.Join(headerValues, ",")
+		values := result.Headers[k]
+
+		assert.Equal(t, expectedValues, values,
+			"missing or incorrect header for key %q", k)
 	}
+
 }
 
 func TestPost(t *testing.T) {
@@ -1022,7 +1026,7 @@ func testRequestWithBodyTransferEncoding(t *testing.T, verb, path string) {
 			defer consumeAndCloseBody(resp)
 
 			result := mustParseResponse[bodyResponse](t, resp)
-			got := result.Headers.Get("Transfer-Encoding")
+			got := result.Headers["Transfer-Encoding"]
 			assert.Equal(t, got, tc.want, "Transfer-Encoding header mismatch")
 		})
 	}
@@ -3685,9 +3689,9 @@ func consumeAndCloseBody(resp *http.Response) {
 	resp.Body.Close()
 }
 
-func assertHeaderEqual(t *testing.T, header *http.Header, key, want string) {
+func assertHeaderEqual(t *testing.T, header FlatHeaders, key, want string) {
 	t.Helper()
-	got := header.Get(key)
+	got := header[key]
 	if want != got {
 		t.Fatalf("expected header %s=%#v, got %#v", key, want, got)
 	}
