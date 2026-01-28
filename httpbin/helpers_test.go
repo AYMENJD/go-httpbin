@@ -26,6 +26,76 @@ func mustParse(s string) *url.URL {
 	return u
 }
 
+func TestFlattenHeaders(t *testing.T) {
+	t.Parallel()
+
+	tests := []struct {
+		name  string
+		input http.Header
+		want  FlatHeaders
+	}{
+		{
+			name: "single value header",
+			input: http.Header{
+				"X-Test": {"one"},
+			},
+			want: FlatHeaders{
+				"X-Test": "one",
+			},
+		},
+		{
+			name: "multiple values header comma separated",
+			input: http.Header{
+				"X-Test": {"one", "two", "three"},
+			},
+			want: FlatHeaders{
+				"X-Test": "one,two,three",
+			},
+		},
+		{
+			name: "multiple headers mixed",
+			input: http.Header{
+				"X-One": {"1"},
+				"X-Two": {"a", "b"},
+			},
+			want: FlatHeaders{
+				"X-One": "1",
+				"X-Two": "a,b",
+			},
+		},
+		{
+			name: "empty value is preserved",
+			input: http.Header{
+				"X-Empty": {""},
+			},
+			want: FlatHeaders{
+				"X-Empty": "",
+			},
+		},
+		{
+			name: "header with no values is ignored",
+			input: http.Header{
+				"X-Skip": {},
+			},
+			want: FlatHeaders{},
+		},
+		{
+			name:  "nil header map",
+			input: nil,
+			want:  FlatHeaders{},
+		},
+	}
+
+	for _, tc := range tests {
+		t.Run(tc.name, func(t *testing.T) {
+			t.Parallel()
+
+			got := flattenHeaders(tc.input)
+			assert.DeepEqual(t, got, tc.want, "flattened headers mismatch")
+		})
+	}
+}
+
 func TestGetURL(t *testing.T) {
 	baseURL := mustParse("http://example.com/something?foo=bar")
 	tests := []struct {

@@ -266,7 +266,7 @@ Compared to [the original][httpbin-org]:
  - The `?show_env=1` query param is ignored (i.e. no special handling of
    runtime environment headers)
  - Response values which may be encoded as either a string or a list of strings
-   will always be encoded as a list of strings (e.g. request headers, query
+   will always be encoded as a list of strings (e.g. query
    params, form values)
 
 Compared to [ahmetb/go-httpbin][ahmet]:

@@ -73,6 +73,17 @@ func getClientIP(r *http.Request) string {
 	return remoteAddr
 }
 
+func flattenHeaders(h http.Header) FlatHeaders {
+	headers := make(FlatHeaders, len(h))
+	for k, v := range h {
+		if len(v) == 0 {
+			continue
+		}
+		headers[k] = strings.Join(v, ",")
+	}
+	return headers
+}
+
 func getURL(r *http.Request) *url.URL {
 	scheme := r.Header.Get("X-Forwarded-Proto")
 	if scheme == "" {
