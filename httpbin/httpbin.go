@@ -158,6 +158,7 @@ func (h *HTTPBin) Handler() http.Handler {
 	mux.HandleFunc("/base64/{operation}/{data}", h.Base64)
 	mux.HandleFunc("/basic-auth/{user}/{password}", h.BasicAuth)
 	mux.HandleFunc("/bearer", h.Bearer)
+	mux.HandleFunc("/brotli", h.Brotli)
 	mux.HandleFunc("/bytes/{numBytes}", h.Bytes)
 	mux.HandleFunc("/cache", h.Cache)
 	mux.HandleFunc("/cache/{numSeconds}", h.CacheControl)
@@ -199,9 +200,6 @@ func (h *HTTPBin) Handler() http.Handler {
 	mux.HandleFunc("/user-agent", h.UserAgent)
 	mux.HandleFunc("/uuid", h.UUID)
 	mux.HandleFunc("/xml", h.XML)
-
-	// existing httpbin endpoints that we do not support
-	mux.HandleFunc("/brotli", notImplementedHandler)
 
 	// Apply global middleware
 	var handler http.Handler

@@ -16,6 +16,8 @@ import (
 	"strings"
 	"time"
 
+	"github.com/andybalholm/brotli"
+
 	"github.com/mccutchen/go-httpbin/v2/httpbin/digest"
 	"github.com/mccutchen/go-httpbin/v2/httpbin/websocket"
 )
@@ -139,6 +141,29 @@ func (h *HTTPBin) Deflate(w http.ResponseWriter, r *http.Request) {
 
 	body := buf.Bytes()
 	w.Header().Set("Content-Encoding", "deflate")
+	w.Header().Set("Content-Type", jsonContentType)
+	w.Header().Set("Content-Length", strconv.Itoa(len(body)))
+	w.WriteHeader(http.StatusOK)
+	w.Write(body)
+}
+
+// Brotli returns a brotli response
+func (h *HTTPBin) Brotli(w http.ResponseWriter, r *http.Request) {
+	var (
+		buf bytes.Buffer
+		bw  = brotli.NewWriter(&buf)
+	)
+	mustMarshalJSON(bw, &noBodyResponse{
+		Args:    r.URL.Query(),
+		Headers: getRequestHeaders(r, h.excludeHeadersProcessor),
+		Method:  r.Method,
+		Origin:  getClientIP(r),
+		Brotli:  true,
+	})
+	bw.Close()
+
+	body := buf.Bytes()
+	w.Header().Set("Content-Encoding", "br")
 	w.Header().Set("Content-Type", jsonContentType)
 	w.Header().Set("Content-Length", strconv.Itoa(len(body)))
 	w.WriteHeader(http.StatusOK)
