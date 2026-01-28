@@ -20,7 +20,7 @@ import (
 	"github.com/mccutchen/go-httpbin/v2/httpbin/websocket"
 )
 
-var nilValues = url.Values{}
+var nilFields = Fields{}
 
 func notImplementedHandler(w http.ResponseWriter, _ *http.Request) {
 	writeError(w, http.StatusNotImplemented, nil)
@@ -56,7 +56,7 @@ func (h *HTTPBin) UTF8(w http.ResponseWriter, _ *http.Request) {
 // Get handles HTTP GET requests
 func (h *HTTPBin) Get(w http.ResponseWriter, r *http.Request) {
 	writeJSON(http.StatusOK, w, &noBodyResponse{
-		Args:    r.URL.Query(),
+		Args:    valuesToFields(r.URL.Query()),
 		Headers: getRequestHeaders(r, h.excludeHeadersProcessor),
 		Method:  r.Method,
 		Origin:  getClientIP(r),
@@ -82,9 +82,9 @@ func (h *HTTPBin) Anything(w http.ResponseWriter, r *http.Request) {
 // JSON representation of the incoming request.
 func (h *HTTPBin) RequestWithBody(w http.ResponseWriter, r *http.Request) {
 	resp := &bodyResponse{
-		Args:    r.URL.Query(),
-		Files:   nilValues,
-		Form:    nilValues,
+		Args:    valuesToFields(r.URL.Query()),
+		Files:   nilFields,
+		Form:    nilFields,
 		Headers: getRequestHeaders(r, h.excludeHeadersProcessor),
 		Method:  r.Method,
 		Origin:  getClientIP(r),
@@ -106,7 +106,7 @@ func (h *HTTPBin) Gzip(w http.ResponseWriter, r *http.Request) {
 		gzw = gzip.NewWriter(&buf)
 	)
 	mustMarshalJSON(gzw, &noBodyResponse{
-		Args:    r.URL.Query(),
+		Args:    valuesToFields(r.URL.Query()),
 		Headers: getRequestHeaders(r, h.excludeHeadersProcessor),
 		Method:  r.Method,
 		Origin:  getClientIP(r),
@@ -129,7 +129,7 @@ func (h *HTTPBin) Deflate(w http.ResponseWriter, r *http.Request) {
 		zw  = zlib.NewWriter(&buf)
 	)
 	mustMarshalJSON(zw, &noBodyResponse{
-		Args:     r.URL.Query(),
+		Args:     valuesToFields(r.URL.Query()),
 		Headers:  getRequestHeaders(r, h.excludeHeadersProcessor),
 		Method:   r.Method,
 		Origin:   getClientIP(r),
@@ -570,7 +570,7 @@ func (h *HTTPBin) Stream(w http.ResponseWriter, r *http.Request) {
 	}
 
 	resp := &streamResponse{
-		Args:    r.URL.Query(),
+		Args:    valuesToFields(r.URL.Query()),
 		Headers: getRequestHeaders(r, h.excludeHeadersProcessor),
 		Origin:  getClientIP(r),
 		URL:     getURL(r).String(),
@@ -870,7 +870,7 @@ func (h *HTTPBin) ETag(w http.ResponseWriter, r *http.Request) {
 
 	var buf bytes.Buffer
 	mustMarshalJSON(&buf, noBodyResponse{
-		Args:    r.URL.Query(),
+		Args:    valuesToFields(r.URL.Query()),
 		Headers: getRequestHeaders(r, h.excludeHeadersProcessor),
 		Method:  r.Method,
 		Origin:  getClientIP(r),
