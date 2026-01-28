@@ -107,6 +107,7 @@ variables (or a combination of the two):
 | `-https-cert-file` | `HTTPS_CERT_FILE` | HTTPS Server certificate file | |
 | `-https-key-file` | `HTTPS_KEY_FILE` | HTTPS Server private key file | |
 | `-log-format` | `LOG_FORMAT` | Log format (text or json) | "text" |
+| `-log-level` | `LOG_LEVEL` | Logging level (DEBUG, INFO, WARN, ERROR, OFF)  | "INFO" |
 | `-max-body-size` | `MAX_BODY_SIZE` | Maximum size of request or response, in bytes | 1048576 |
 | `-max-duration` | `MAX_DURATION` | Maximum duration a response may take | 10s |
 | `-port` | `PORT` | Port to listen on | 8080 |
