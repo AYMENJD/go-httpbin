@@ -117,6 +117,34 @@ func getURL(r *http.Request) *url.URL {
 	}
 }
 
+func valuesToFields(v url.Values) Fields {
+	if len(v) == 0 {
+		return nil
+	}
+
+	fields := make(Fields, len(v))
+	for k, vs := range v {
+		if len(vs) == 1 {
+			fields[k] = vs[0]
+		} else {
+			fields[k] = vs
+		}
+	}
+	return fields
+}
+
+func sliceMapToFields(m map[string][]string) Fields {
+	if len(m) == 0 {
+		return nil
+	}
+
+	fields := make(Fields, len(m))
+	for k, v := range m {
+		fields[k] = v
+	}
+	return fields
+}
+
 func writeResponse(w http.ResponseWriter, status int, contentType string, body []byte) {
 	w.Header().Set("Content-Type", contentType)
 	w.WriteHeader(status)
@@ -222,7 +250,7 @@ func parseBody(r *http.Request, resp *bodyResponse) error {
 		if err := r.ParseForm(); err != nil {
 			return err
 		}
-		resp.Form = r.PostForm
+		resp.Form = sliceMapToFields(r.PostForm)
 
 	case "multipart/form-data":
 		// The memory limit here only restricts how many parts will be kept in
@@ -231,12 +259,12 @@ func parseBody(r *http.Request, resp *bodyResponse) error {
 		if err := r.ParseMultipartForm(1024); err != nil {
 			return err
 		}
-		resp.Form = r.PostForm
+		resp.Form = sliceMapToFields(r.PostForm)
 		files, err := parseFiles(r.MultipartForm.File)
 		if err != nil {
 			return err
 		}
-		resp.Files = files
+		resp.Files = sliceMapToFields(files)
 
 	case "application/json":
 		if err := json.NewDecoder(r.Body).Decode(&resp.JSON); err != nil {

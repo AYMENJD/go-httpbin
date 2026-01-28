@@ -1,9 +1,5 @@
 package httpbin
 
-import (
-	"net/url"
-)
-
 const (
 	binaryContentType = "application/octet-stream"
 	htmlContentType   = "text/html; charset=utf-8"
@@ -13,6 +9,7 @@ const (
 )
 
 type FlatHeaders map[string]string
+type Fields map[string]any
 
 type envResponse struct {
 	Env map[string]string `json:"env"`
@@ -33,7 +30,7 @@ type userAgentResponse struct {
 // A generic response for any incoming request that should not contain a body
 // (GET, HEAD, OPTIONS, etc).
 type noBodyResponse struct {
-	Args    url.Values  `json:"args"`
+	Args    Fields      `json:"args"`
 	Headers FlatHeaders `json:"headers"`
 	Method  string      `json:"method"`
 	Origin  string      `json:"origin"`
@@ -47,16 +44,15 @@ type noBodyResponse struct {
 // A generic response for any incoming request that might contain a body (POST,
 // PUT, PATCH, etc).
 type bodyResponse struct {
-	Args    url.Values  `json:"args"`
-	Headers FlatHeaders `json:"headers"`
-	Method  string      `json:"method"`
-	Origin  string      `json:"origin"`
-	URL     string      `json:"url"`
+	Args   Fields `json:"args"`
+	Method string `json:"method"`
+	Origin string `json:"origin"`
+	URL    string `json:"url"`
 
-	Data  string     `json:"data"`
-	Files url.Values `json:"files"`
-	Form  url.Values `json:"form"`
-	JSON  any        `json:"json"`
+	Data  string `json:"data"`
+	Files Fields `json:"files"`
+	Form  Fields `json:"form"`
+	JSON  any    `json:"json"`
 }
 
 type cookiesResponse struct {
@@ -75,7 +71,6 @@ type authResponse struct {
 // structs, encoded as JSON and separated by newlines
 type streamResponse struct {
 	ID      int         `json:"id"`
-	Args    url.Values  `json:"args"`
 	Headers FlatHeaders `json:"headers"`
 	Origin  string      `json:"origin"`
 	URL     string      `json:"url"`
